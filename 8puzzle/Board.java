@@ -7,54 +7,60 @@ public class Board {
     private int[][] blocks;
     private int zeroX;
     private int zeroY;
+    private int moves;
     
-
 	public Board(int[][] blocks) {
-        N = blocks.length;
-        this.blocks = new int[N][N];
-
-        for (int i = 0; i < N; i++) {
-            for(int j = 0; j < N; j++) {
-                this.blocks[i] = blocks[i];
-                if(blocks[i][j] == 0) {
-                	this.zeroY = i;
-                	this.zeroX = j;
-                }
-            }
-        }
-
+		this(blocks,0);
     }       
-    
+
+	private Board(int[][] blocks, int moves) {
+		this.moves = moves;
+		N = blocks.length;
+		this.blocks = new int[N][N];
+
+	    for (int i = 0; i < N; i++) {
+	        for(int j = 0; j < N; j++) {
+	            this.blocks[i][j] = blocks[i][j];
+	            if(blocks[i][j] == 0) {
+	              	this.zeroY = i;
+	               	this.zeroX = j;
+	            }
+	         }
+	    }		
+	}
+	
     public int dimension() {
         return N;
     }
    
     public int hamming() {
-        int count = 0;
+        int count = moves;
         
-        int inc = 1;
-        int nsquared = N * N;
-
         for (int i = 0; i < N; i++) {
             for (int j = 0; j < N; j++) {
-                if(blocks[i][j] != 0) 
-                if(blocks[i][j] != ((i*N + j + 1) % (nsquared))) {
-                    count++;
-                }
+            	if (blocks[i][j] != 0 && blocks[i][j] != goalValue(i, j))  
+            		count++;
             }
         }
 
         return count;
     }
+    
+    private int goalValue(int i, int j) {
+    	if(i == dimension()-1 && j == dimension()-1)
+    		return 0;
+    	else
+    		return (i*dimension()) + j + 1;
+    }
 
     public int manhattan() {
-        int manhattan = 0;
+        int manhattan = moves;
         for (int i = 0; i < N; i++)
             for (int j = 0; j < N; j++) {
                 if (blocks[i][j] == 0)
                     continue;
                 int row = (blocks[i][j] - 1) / N;
-                int col = (blocks[i][j] - 1) % N;
+                int col = (blocks[i][j] - 1) - (row*N);
                 manhattan += (Math.abs(i - row) + Math.abs(j - col));
             }
         return manhattan;
@@ -73,7 +79,29 @@ public class Board {
     }
 
     public Board twin() {
-		return null;
+    	int[][] twinBoard = new int[N][N];
+    	boolean flag = false;
+    	
+    	for (int i = 0; i < N; i++) {    		
+    		for (int j = 0; j < N; j++) {
+    			twinBoard[i][j] = this.blocks[i][j];
+    		}
+    	}
+    	
+    	for (int i = 0; i < N; i++) {    		
+    		if(flag) break;
+    		for (int j = 1; j < N; j++) {
+    			if(twinBoard[i][j] != 0 && twinBoard[i][j-1] != 0) {
+    				int temp = twinBoard[i][j];
+    				twinBoard[i][j] = twinBoard[i][j-1];
+    				twinBoard[i][j-1] = temp;
+    				flag = true;
+    				break;
+    			}
+    		}
+    	}
+    	
+    	return new Board(twinBoard, moves);
     }
 
 	@Override
@@ -90,7 +118,7 @@ public class Board {
 		return true;
 	}
 
-	public int[][] copyBoard() {
+	private int[][] copyBoard() {
 		int[][] newBlocks = new int[N][N];
 		
 		for(int i = 0;i < N; i++) {
@@ -103,47 +131,49 @@ public class Board {
 	}
 	
 	public Iterable<Board> neighbors() {
-        List<Board> newBoard = new ArrayList<>();
-        
+        Queue<Board> newBoard = new Queue<Board>();
         if(this.zeroX > 0) {
         	int[][] leftBoard = copyBoard();
         	leftBoard[this.zeroY][this.zeroX] = leftBoard[this.zeroY][this.zeroX - 1];
         	leftBoard[this.zeroY][this.zeroX - 1] = 0;
-        	newBoard.add(new Board(leftBoard));
+        	newBoard.enqueue(new Board(leftBoard, moves+1));
         }
         
         if(this.zeroY > 0) {
         	int[][] upBoard = copyBoard();
         	upBoard[this.zeroY][this.zeroX] = upBoard[this.zeroY - 1][this.zeroX];
         	upBoard[this.zeroY - 1][this.zeroX] = 0;
-        	newBoard.add(new Board(upBoard));
+        	newBoard.enqueue(new Board(upBoard, moves+1));
         }
         
         if(this.zeroX < N - 1) {
         	int[][] rightBoard = copyBoard();
         	rightBoard[this.zeroY][this.zeroX] = rightBoard[this.zeroY][this.zeroX + 1];
         	rightBoard[this.zeroY][this.zeroX + 1] = 0;
-        	newBoard.add(new Board(rightBoard));
+        	newBoard.enqueue(new Board(rightBoard, moves+1));
         }
         
         if(this.zeroY < N - 1) {
         	int[][] downBoard = copyBoard();
         	downBoard[this.zeroY][this.zeroX] = downBoard[this.zeroY + 1][this.zeroX];
         	downBoard[this.zeroY + 1][this.zeroX] = 0;
-        	newBoard.add(new Board(downBoard));
+        	newBoard.enqueue(new Board(downBoard, moves+1));
         }
         
         return newBoard;
     }
 
-    public String toString() {
-        return null;
-    }
+	public String toString() {
+	    StringBuilder s = new StringBuilder();
+	    s.append(N + "\n");
+	    for (int i = 0; i < N; i++) {
+	        for (int j = 0; j < N; j++) {
+	            s.append(String.format("%2d ", blocks[i][j]));
+	        }
+	        s.append("\n");
+	    }
+	    return s.toString();
+	}
 
-    public static void main(String[] args) {
-        int[][] sample = {{8, 1, 3}, {4, 0, 2}, {7, 6, 5}};
-        Board b = new Board(sample);
-        System.out.println(b.hamming());
-
-    }
+    public static void main(String[] args) {}
 }
